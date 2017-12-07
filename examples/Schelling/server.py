@@ -1,7 +1,8 @@
 from mesa.visualization.ModularVisualization import ModularServer
+from mesa.visualization.ModularVisualization import VisualizationElement
 from mesa.visualization.modules import CanvasGrid, ChartModule, TextElement
 from mesa.visualization.UserParam import UserSettableParameter
-
+import json
 from mesa.visualization.TextVisualization import (
     TextData, TextGrid, TextVisualization
 )
@@ -35,6 +36,16 @@ class SchellingTextVisualization(TextVisualization):
             return 'X'
 
 
+class ReporterElement(VisualizationElement):
+
+    package_includes = ["ReporterModule.js"]
+    js_code = "elements.push(new ReporterModule());"
+
+    def render(self, model):
+        params = list(model.datacollector.model_vars.keys())
+        return json.dumps(params)
+
+
 class HappyElement(TextElement):
     '''
     Display a text count of how many happy agents there are.
@@ -63,6 +74,7 @@ def schelling_draw(agent):
 
 
 happy_element = HappyElement()
+reporter_element = ReporterElement()
 canvas_element = CanvasGrid(schelling_draw, 20, 20, 500, 500)
 happy_chart = ChartModule([{"Label": "happy", "Color": "Black"}])
 
@@ -75,6 +87,7 @@ model_params = {
 }
 
 server = ModularServer(SchellingModel,
-                       [canvas_element, happy_element, happy_chart],
+                       [canvas_element, reporter_element, happy_element,
+                        happy_chart],
                        "Schelling", model_params)
 server.launch()
