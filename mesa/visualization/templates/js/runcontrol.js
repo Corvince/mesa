@@ -221,7 +221,7 @@ var initGUI = function() {
     var chartButton = $('<button type="button" class="btn btn-secondary" onclick="createChart()">Create chart</button>')
     sidebar.append(chartButton)
 
-
+    sortable(document.getElementById('elements'))
 };
 
 var createChart = function() {
@@ -339,6 +339,8 @@ function sortable(rootEl) {
        itemEl.addEventListener('dragstart', onDragStart, false)
        itemEl.addEventListener('dragover', onDragOver, false);
        itemEl.addEventListener('dragend', onDragEnd, false);
+       itemEl.addEventListener('dragenter', handleDragEnter, false);
+       itemEl.addEventListener('dragleave', handleDragLeave, false);
    });
 
    function onDragStart(evt){
@@ -353,16 +355,23 @@ function sortable(rootEl) {
    function onDragOver(evt) {
        evt.preventDefault();
        evt.dataTransfer.dropEffect = 'move';
-       target = evt.target
-       evt.target.style.border = '4px dotted'
    }
+
+   function handleDragEnter(e) {
+     // this / e.target is the current hover target.
+     this.classList.add('over');
+     target = e.target
+   }
+
+   function handleDragLeave(e) {
+     this.classList.remove('over');  // this / e.target is previous target element.
+   }
+
 
    // End of sorting
    function onDragEnd(evt){
        evt.preventDefault();
-       console.log(rootEl)
-       console.log(dragEl)
-       console.log(target)
+       dragEl.classList.remove('over');
        rootEl.insertBefore(dragEl, target)
    }
 }
