@@ -200,9 +200,8 @@ var initGUI = function() {
 
     var addReporter = function(reporters) {
 
-        var dom_id = 'reporter'
         sidebar.append(
-          "<p><label for='" + dom_id + "' class='label label-primary'>Reporter</label></p>"
+          "<h3>Model Reporters</h3>"
         )
 
         var select = $("<select class='custom-select' id='reporter-selector'></select>")
@@ -213,7 +212,6 @@ var initGUI = function() {
           select.append(option)
         }
         sidebar.append(select)
-
     }
 
 
@@ -228,6 +226,7 @@ var createChart = function() {
     var e = $("#reporter-selector")[0];
     var label = e.options[e.selectedIndex].text;
     send({"type": "create_chart", "label": label})
+    setTimeout(location.reload.bind(location), 100);
 }
 
 /** Parse and handle an incoming message on the WebSocket connection. */
@@ -371,7 +370,7 @@ function sortable(rootEl) {
    // End of sorting
    function onDragEnd(evt){
        evt.preventDefault();
-       dragEl.classList.remove('over');
+       target.classList.remove('over');
        rootEl.insertBefore(dragEl, target)
    }
 }
