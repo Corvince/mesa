@@ -56,11 +56,9 @@ class SchellingModel(Model):
 
         self.happy = 0
         self.datacollector = DataCollector(
-            {"happy": lambda m: m.happy},  # Model-level count of happy agents
+            {"happy": "happy"},  # Model-level count of happy agents
             # For testing purposes, agent's individual x and y
             {"x": lambda a: a.pos[0], "y": lambda a: a.pos[1]})
-
-        self.running = True
 
         # Set up agents
         # We use a grid iterator that returns
@@ -79,12 +77,16 @@ class SchellingModel(Model):
                 self.grid.position_agent(agent, (x, y))
                 self.schedule.add(agent)
 
+        self.running = True
+        self.datacollector.collect(self)
+
     def step(self):
         '''
         Run one step of the model. If All agents are happy, halt the model.
         '''
         self.happy = 0  # Reset counter of happy agents
         self.schedule.step()
+        # collect data
         self.datacollector.collect(self)
 
         if self.happy == self.schedule.get_agent_count():
