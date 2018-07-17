@@ -6,10 +6,12 @@ from setuptools import setup, find_packages
 from codecs import open
 
 requires = [
-    'tornado',
+    'tornado >= 4.2, < 5.0.0',
+    'networkx',
     'numpy',
     'pandas',
     'tqdm',
+    'click',
 ]
 
 version = ''
@@ -47,4 +49,8 @@ setup(
         'Development Status :: 3 - Alpha',
         'Natural Language :: English',
     ],
+    entry_points='''
+        [console_scripts]
+        mesa=mesa.main:cli
+    ''',
 )
