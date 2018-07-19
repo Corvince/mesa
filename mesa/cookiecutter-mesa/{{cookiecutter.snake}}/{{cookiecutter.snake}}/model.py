@@ -20,21 +20,27 @@ class {{cookiecutter.agent}}(Agent):  # noqa
 
     def step(self):
         """
-        Modify this method to change what an individual agent will do during each step.
-        Can include logic based on neighbors states.
+        Modify this method to change what an individual agent will do during
+        each step.
+        Can include logic based on other agents.
         """
         pass
 
 
 class {{cookiecutter.model}}(Model):
     """
-    The model class holds the model-level attributes, manages the agents, and generally handles
-    the global level of our model.
+    The model class holds the model-level attributes, manages the agents,
+    and generally handles the global level of our model.
 
-    There is only one model-level parameter: how many agents the model contains. When a new model
-    is started, we want it to populate itself with the given number of agents.
+    Currently, there are three model-level parameters:
+        num_agents: How many agents the model contains
+        width, height: The grid size of the model space
 
-    The scheduler is a special model component which controls the order in which agents are activated.
+    When we start the model, we want it to populate a grid with the given
+    number of agents.
+
+    The scheduler is a special model component which controls the order in
+    which agents are activated.
     """
 
     def __init__(self, num_agents, width, height):
@@ -44,22 +50,25 @@ class {{cookiecutter.model}}(Model):
         self.grid = MultiGrid(width=width, height=height, torus=True)
 
         for i in range(self.num_agents):
-            agent = {{cookiecutter.agent}}(i, self)
+            agent = {{cookiecutter.agent}}(unique_id=i, model=self)
             self.schedule.add(agent)
 
             x = random.randrange(self.grid.width)
             y = random.randrange(self.grid.height)
             self.grid.place_agent(agent, (x, y))
 
-        # example data collector
-        self.datacollector = DataCollector()
+        # Data collector
+        self.datacollector = DataCollector(
+            {"agents": "num_agents"}
+        )
 
+        # Start the model in a running state and collect initial data
         self.running = True
         self.datacollector.collect(self)
 
     def step(self):
         """
-        A model step. Used for collecting data and advancing the schedule
+        A model step. Used for advancing the schedule and collecting data
         """
-        self.datacollector.collect(self)
         self.schedule.step()
+        self.datacollector.collect(self)

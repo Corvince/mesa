@@ -19,7 +19,7 @@ def cli():
 @cli.command()
 @click.argument('project', type=PROJECT_PATH, default='.')
 def runserver(project):
-    '''Run mesa project PROJECT
+    '''Run mesa project PROJECT.
 
     PROJECT is the path to the directory containing `run.py`, or the current
     directory if not specified.
@@ -36,6 +36,10 @@ def runserver(project):
 @click.option('--no-input', is_flag=True,
               help='Do not prompt user for custom mesa model input.')
 def startproject(no_input):
+    """Create a project template."""
+    click.echo('Please enter your project name and description.\n'
+               'You can accept the defaults for snake and camel case '
+               'by pressing the [Enter] key\n')
     args = ['cookiecutter', COOKIECUTTER_PATH]
     if no_input:
         args.append('--no-input')
