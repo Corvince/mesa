@@ -6,7 +6,7 @@ from mesa.space import MultiGrid
 from mesa.datacollection import DataCollector
 
 
-class {{cookiecutter.agent}}(Agent):
+class {{cookiecutter.agent}}(Agent):  # noqa
     """
     An agent
     """
@@ -20,7 +20,8 @@ class {{cookiecutter.agent}}(Agent):
 
     def step(self):
         """
-        Modify this method to change what an individual agent will do during each step.
+        Modify this method to change what an individual agent will do during
+        each step.
         Can include logic based on other agents.
         """
         pass
@@ -28,16 +29,18 @@ class {{cookiecutter.agent}}(Agent):
 
 class {{cookiecutter.model}}(Model):
     """
-    The model class holds the model-level attributes, manages the agents, and generally handles
-    the global level of our model.
+    The model class holds the model-level attributes, manages the agents,
+    and generally handles the global level of our model.
 
-    Currently, there are three model-level parameters: 
+    Currently, there are three model-level parameters:
         num_agents: How many agents the model contains
         width, height: The grid size of the model space
-        
-    When we start the model, we want it to populate a grid with the given number of agents.
 
-    The scheduler is a special model component which controls the order in which agents are activated.
+    When we start the model, we want it to populate a grid with the given
+    number of agents.
+
+    The scheduler is a special model component which controls the order in
+    which agents are activated.
     """
 
     def __init__(self, num_agents, width, height):
@@ -55,8 +58,10 @@ class {{cookiecutter.model}}(Model):
             self.grid.place_agent(agent, (x, y))
 
         # Data collector
-        self.datacollector = DataCollector()
-        
+        self.datacollector = DataCollector(
+            {"agents": "num_agents"}
+        )
+
         # Start the model in a running state and collect initial data
         self.running = True
         self.datacollector.collect(self)
@@ -67,4 +72,3 @@ class {{cookiecutter.model}}(Model):
         """
         self.schedule.step()
         self.datacollector.collect(self)
-

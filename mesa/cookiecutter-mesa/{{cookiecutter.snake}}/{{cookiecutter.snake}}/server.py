@@ -2,10 +2,11 @@
 Configure visualization elements and instantiate a server
 """
 
-from .model import {{ cookiecutter.model }}, {{ cookiecutter.agent }}  # noqa
+from .model import {{cookiecutter.model}}, {{cookiecutter.agent}}  # noqa
 
 from mesa.visualization.ModularVisualization import ModularServer
 from mesa.visualization.modules import CanvasGrid, ChartModule
+from mesa.visualization.UserParam import UserSettableParameter
 
 
 def circle_portrayal_example(agent):
@@ -21,11 +22,16 @@ def circle_portrayal_example(agent):
 
 
 canvas_element = CanvasGrid(circle_portrayal_example, 20, 20, 500, 500)
-chart_element = ChartModule([{"Label": "{{ cookiecutter.camel }}", "Color": "Pink"}])
+chart_element = ChartModule([{"Label": "agents",
+                              "Color": "Pink"}])
 
-model_kwargs = {"num_agents": 10,
-                "width": 10,
-                "height": 10}
+model_kwargs = {"num_agents": UserSettableParameter(
+                    'slider',
+                    "Number of agents", 10, 1, 100, 1,
+                    description="Choose the number of agents"),
+                "width": 20,
+                "height": 20}
 
-server = ModularServer({{ cookiecutter.model }}, [canvas_element, chart_element],  # noqa
-                       "{{ cookiecutter.camel }}", model_kwargs)
+server = ModularServer({{cookiecutter.model}},
+                       [canvas_element, chart_element],  # noqa
+                       "{{cookiecutter.camel}}", model_kwargs)
