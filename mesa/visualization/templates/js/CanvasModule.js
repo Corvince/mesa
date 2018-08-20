@@ -3,8 +3,7 @@ var CanvasModule = function(canvas_width, canvas_height, grid_width, grid_height
 	// ------------------
 
 	// Create the tag:
-	var canvas_tag = "<canvas width='" + canvas_width + "' height='" + canvas_height + "' ";
-	canvas_tag += "></canvas>";
+	var canvas_tag = "<canvas width='" + canvas_width + "' height='" + canvas_height + "'></canvas>";
 	// Append it to body:
 	var canvas = $(canvas_tag)[0];
 	//$("body").append(canvas);

@@ -45,7 +45,6 @@ var sidebar = $("#sidebar");
 
 // WebSocket Stuff
 // Open the websocket connection; support TLS-specific URLs when appropriate
-
 var ws = new WebSocket((window.location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws");
 
 ws.onopen = function() {
@@ -249,14 +248,12 @@ var createChart = function() {
 /** Parse and handle an incoming message on the WebSocket connection. */
 ws.onmessage = function(message) {
     var msg = JSON.parse(message.data);
-    console.log(msg)
     switch (msg["type"]) {
         case "viz_state":
             var data = msg["data"];
             for (var i in elements) {
                 elements[i].render(data[i]);
             }
-            console.log(data)
             break;
         case "end":
             // We have reached the end of the model

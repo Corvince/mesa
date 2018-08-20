@@ -221,9 +221,8 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             })
 
         elif msg["type"] == "get_reporters":
-            reporters = []
-            for reporter in self.application.model.datacollector.model_vars.keys():
-                reporters.append(reporter)
+            reporters = [
+                self.application.model.datacollector.model_vars.keys()]
 
             self.write_message({
                 "type": "model_reporters",

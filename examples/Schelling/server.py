@@ -76,12 +76,7 @@ model_params = {
     "homophily": UserSettableParameter("slider", "Homophily", 3, 0, 8, 1)
 }
 
-<<<<<<< HEAD
-server = ModularServer(SchellingModel,
-                       [canvas_element, happy_element],
-=======
 server = ModularServer(Schelling,
                        [canvas_element, happy_element, happy_chart],
->>>>>>> master
                        "Schelling", model_params)
 server.launch()
