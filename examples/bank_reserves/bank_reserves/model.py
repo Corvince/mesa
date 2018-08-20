@@ -77,7 +77,7 @@ def get_total_loans(model):
     return np.sum(agent_loans)
 
 
-class BankReservesModel(Model):
+class BankReserves(Model):
 
     # grid height
     grid_h = 20
@@ -124,12 +124,13 @@ class BankReservesModel(Model):
             self.schedule.add(p)
 
         self.running = True
+        self.datacollector.collect(self)
 
     def step(self):
-        # collect data
-        self.datacollector.collect(self)
         # tell all the agents in the model to run their step function
         self.schedule.step()
+        # collect data
+        self.datacollector.collect(self)
 
     def run_model(self):
         for i in range(self.run_time):

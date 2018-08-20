@@ -2,7 +2,7 @@ from mesa.visualization.ModularVisualization import ModularServer
 from mesa.visualization.modules import CanvasGrid, ChartModule
 from mesa.visualization.UserParam import UserSettableParameter
 from bank_reserves.agents import Person
-from bank_reserves.model import BankReservesModel
+from bank_reserves.model import BankReserves
 
 """
 Citation:
@@ -13,11 +13,11 @@ Author of original code: Taylor Mutch
 """
 
 # Green
-RICH_COLOR = "46FF33"
+RICH_COLOR = "#46FF33"
 # Red
-POOR_COLOR = "FF3C33"
+POOR_COLOR = "#FF3C33"
 # Blue
-MID_COLOR = "3349FF"
+MID_COLOR = "#3349FF"
 
 
 def person_portrayal(agent):
@@ -66,7 +66,7 @@ chart_element = ChartModule([{"Label": "Rich", "Color": RICH_COLOR},
                              {"Label": "Middle Class", "Color": MID_COLOR}])
 
 # create instance of Mesa ModularServer
-server = ModularServer(BankReservesModel, [canvas_element, chart_element],
+server = ModularServer(BankReserves, [canvas_element, chart_element],
                        "Bank Reserves Model",
                        model_params=model_params
                        )

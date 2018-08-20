@@ -31,11 +31,11 @@ def number_resistant(model):
     return number_state(model, State.RESISTANT)
 
 
-class VirusModel(Model):
+class VirusOnNetwork(Model):
     """A virus model with some number of agents"""
 
-    def __init__(self, num_nodes, avg_node_degree, initial_outbreak_size, virus_spread_chance, virus_check_frequency,
-                 recovery_chance, gain_resistance_chance):
+    def __init__(self, num_nodes=10, avg_node_degree=3, initial_outbreak_size=1, virus_spread_chance=0.4,
+                virus_check_frequency=0.4, recovery_chance=0.3, gain_resistance_chance=0.5):
 
         self.num_nodes = num_nodes
         prob = avg_node_degree / self.num_nodes
@@ -47,7 +47,6 @@ class VirusModel(Model):
         self.virus_check_frequency = virus_check_frequency
         self.recovery_chance = recovery_chance
         self.gain_resistance_chance = gain_resistance_chance
-        self.running = True
 
         self.datacollector = DataCollector({"Infected": number_infected,
                                             "Susceptible": number_susceptible,
@@ -66,6 +65,9 @@ class VirusModel(Model):
         for a in self.grid.get_cell_list_contents(infected_nodes):
             a.state = State.INFECTED
 
+        self.running = True
+        self.datacollector.collect(self)
+
     def resistant_susceptible_ratio(self):
         try:
             return number_state(self, State.RESISTANT) / number_state(self, State.SUSCEPTIBLE)
@@ -74,6 +76,7 @@ class VirusModel(Model):
 
     def step(self):
         self.schedule.step()
+        # collect data
         self.datacollector.collect(self)
 
     def run_model(self, n):
