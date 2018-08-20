@@ -221,8 +221,8 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             })
 
         elif msg["type"] == "get_reporters":
-            reporters = [
-                self.application.model.datacollector.model_vars.keys()]
+            reporters = list(
+                self.application.model.datacollector.model_vars.keys())
 
             self.write_message({
                 "type": "model_reporters",
@@ -230,6 +230,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             })
 
         elif msg["type"] == "create_chart":
+            from mesa.visualization.modules import ChartModule
             label = msg["label"]
             chart = ChartModule([{"Label": str(label), "Color": "Black"}])
             self.application.visualization_elements.append(chart)
@@ -340,5 +341,3 @@ class ModularServer(tornado.web.Application):
         tornado.autoreload.start()
         if startLoop:
             tornado.ioloop.IOLoop.instance().start()
-
-from mesa.visualization.modules import ChartModule
