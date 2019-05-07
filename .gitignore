@@ -64,7 +64,15 @@ target/
 
 # PyCharm environment files
 .idea/
-.vscode/
 
 # Apple OSX
 *.DS_Store
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
