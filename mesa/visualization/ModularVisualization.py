@@ -257,7 +257,7 @@ class ModularServer(tornado.web.Application):
     EXCLUDE_LIST = ("width", "height")
 
     def __init__(
-        self, model_cls, visualization_elements, name="Mesa Model", model_params={}
+        self, model_cls, visualization_elements, name="Mesa Model", model_params=None
     ):
         """ Create a new visualization server with the given elements. """
         # Prep visualization elements:
@@ -280,6 +280,9 @@ class ModularServer(tornado.web.Application):
             self.description = model_cls.description
         elif model_cls.__doc__ is not None:
             self.description = model_cls.__doc__
+
+        if model_params is None:
+            model_params = {}
 
         self.model_kwargs = model_params
         self.reset_model()
