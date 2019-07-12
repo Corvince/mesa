@@ -96,8 +96,12 @@ Client -> Server:
     }
 
 """
+import copy
 import os
+import pickle
 import webbrowser
+
+from typing import Optional
 
 import tornado.autoreload
 import tornado.escape
@@ -133,15 +137,23 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
     """ Handler for websocket. """
 
     def open(self):
+        self.old_states = []
         if self.application.verbose:
             print("Socket opened!")
+
+        self.write_message(
+            {"type": "vega_specs", "data": self.application.vega_specifications}
+        )
 
     def check_origin(self, origin):
         return True
 
     @property
-    def viz_state_message(self):
-        return {"type": "viz_state"}
+    def model_state_message(self):
+        return {
+            "type": "model_state",
+            "data": [model.as_json() for model in self.application.models],
+        }
 
     def on_message(self, message):
         """ Receiving a message from the websocket, parse, and act accordingly.
@@ -152,15 +164,16 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
         msg = tornado.escape.json_decode(message)
 
         if msg["type"] == "get_step":
-            if not self.application.model.running:
-                self.write_message({"type": "end"})
+            if msg["step"] == self.application.current_step:
+                state = self.model_state_message
+                self.write_message(state)
+                self.old_states.append(state)
+                self.application.step()
             else:
-                self.write_message(self.viz_state_message)
-            if self.application.model.schedule.steps == msg["step"]:
-                self.application.model.step()
+                self.write_message(self.old_states[msg["step"]])
 
         elif msg["type"] == "reset":
-            self.application.reset_model()
+            self.application.reset_models()
             self.write_message({"type": "reset"})
             self.write_message(
                 {"type": "model_params", "params": self.application.user_params}
@@ -211,7 +224,12 @@ class VegaServer(tornado.web.Application):
     EXCLUDE_LIST = ("width", "height")
 
     def __init__(
-        self, model_cls, vega_specifications, name="Mesa Model", model_params=None
+        self,
+        model_cls,
+        vega_specifications: str,
+        name: str = "Mesa Model",
+        model_params: Optional[dict] = None,
+        n_simulations: int = 1,
     ):
         """ Create a new visualization server with the given elements. """
         # Prep visualization elements:
@@ -226,9 +244,17 @@ class VegaServer(tornado.web.Application):
         elif model_cls.__doc__ is not None:
             self.description = model_cls.__doc__
 
+        self.n_simulations = n_simulations
+
         if model_params is None:
             model_params = {}
-        self.model_kwargs = model_params
+
+        self.model_params = model_params
+
+        self.model_kwargs = [
+            copy.deepcopy(self.model_params) for _ in range(n_simulations)
+        ]
+        self.reset_models()
 
         # Initializing the application itself:
         super().__init__(self.handlers, **self.settings)
@@ -236,27 +262,44 @@ class VegaServer(tornado.web.Application):
     @property
     def user_params(self):
         result = []
-        for param, val in self.model_kwargs.items():
+        for param, val in self.model_params.items():
             if isinstance(val, UserSettableParameter):
                 val.parameter = param
                 result.append(val.json)
         return result
 
-    def reset_model(self):
+    def step(self):
+        """Advance all models by one step.
+        """
+        self.pickles[self.current_step] = pickle.dumps(self.models)
+        for i, model in enumerate(self.models):
+            model.step()
+        self.current_step += 1
+
+    def restore_state(self, step: int):
+        for i in range(self.n_simulations):
+            self.models[i] = pickle.loads(self.pickles[i][step])
+        self.current_step = step
+
+    def reset_models(self):
         """ Reinstantiate the model object, using the current parameters. """
 
-        model_params = {}
-        for key, val in self.model_kwargs.items():
-            if isinstance(val, UserSettableParameter):
-                if (
-                    val.param_type == "static_text"
-                ):  # static_text is never used for setting params
-                    continue
-                model_params[key] = val.value
-            else:
-                model_params[key] = val
-
-        self.model = self.model_cls(**model_params)
+        self.models = []
+        self.state_pickles = {}
+        for i in range(self.n_simulations):
+            model_params = {}
+            for key, val in self.model_kwargs[i].items():
+                if isinstance(val, UserSettableParameter):
+                    if (
+                        val.param_type == "static_text"
+                    ):  # static_text is never used for setting params
+                        continue
+                    model_params[key] = val.value
+                else:
+                    model_params[key] = val
+            print(model_params)
+            self.models.append(self.model_cls(**model_params))
+            self.current_step = 0
 
     def launch(self, port=None):
         """ Run the app. """
