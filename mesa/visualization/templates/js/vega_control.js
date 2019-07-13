@@ -1,9 +1,10 @@
-var define = window.hybrids.define
-var html = window.hybrids.html
-var parent = window.hybrids.parent
-var property = window.hybrids.property
-
-// import { html, define, parent } from "https://unpkg.com/hybrids/src"
+import {
+  html,
+  define,
+  parent,
+  property,
+  render
+} from "https://unpkg.com/hybrids/src"
 
 /**
  * Main AppStore for saving state across the Application
@@ -22,6 +23,21 @@ const AppStore = {
   parameter: {
     ...property([]),
     observe: sendParameter
+  },
+  specs: [],
+  views: ({ specs }) =>
+    specs.map((spec, index) => vegaEmbed("#view" + index, spec)),
+  model_state: {
+    set: ({ views }, value) => {
+      let mychange = vega
+        .changeset()
+        .insert(value.agents)
+        .remove(vega.truthy)
+      views.map(view =>
+        view.then(result => result.view.change("agents", mychange).run())
+      )
+      return value
+    }
   },
   fps: 3,
   timeout: 0
@@ -50,6 +66,21 @@ const AppControl = {
         `}
     <wl-button onclick=${resetModel}>Reset</wl-button>
   `
+}
+
+const VegaElement = {
+  store: parent(AppStore),
+  specs: ({ store }) => store.specs,
+  render: render(
+    ({ specs }) => html`
+      ${specs.map(
+        (_, index) => html`
+          <div id="view${index}"></div>
+        `
+      )}
+    `,
+    { shadowRoot: false }
+  )
 }
 
 /**
@@ -196,6 +227,7 @@ define("app-control", AppControl)
 define("input-parameters", InputParameters)
 define("mesa-input", MesaInput)
 define("fps-control", FPSControl)
+define("vega-element", VegaElement)
 
 /**
  * Host element instance connected to an AppStore.
@@ -333,10 +365,9 @@ ws.onopen = () => (store.steps = -1)
 ws.onmessage = function(message) {
   const msg = JSON.parse(message.data)
   switch (msg.type) {
-    case "viz_state":
+    case "model_state":
       // Update visualization state
-      control.tick = store.steps
-      vizElements.forEach((element, index) => element.render(msg.data[index]))
+      store.model_state = JSON.parse(msg.data)
       if (store.running) {
         store.timeout = setTimeout(incrementStep, 1000 / store.fps, {
           store: store
@@ -348,12 +379,13 @@ ws.onmessage = function(message) {
       store.done = true
       store.running = false
       break
-    case "reset":
-      vizElements.forEach(element => element.reset())
-      break
     case "model_params":
       // Create input elements for each model parameter
       msg.params.forEach(param => addParameter(store, param))
+      break
+    case "vega_specs":
+      let specifications = msg.data.map(spec => JSON.parse(spec))
+      store.specs = specifications
       break
     default:
       // There shouldn't be any other message
@@ -374,3 +406,4 @@ function send(message) {
 window.store = document.querySelector("app-store")
 window.control = control
 window.elements = vizElements
+window.send = send
