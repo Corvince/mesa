@@ -16,3 +16,7 @@ aside {
 main {
   padding: 8px;
 }
+
+vega-element {
+  display: flex;
+}

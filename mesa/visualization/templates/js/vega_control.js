@@ -17,32 +17,92 @@ import {
  * @property {number} timeout - the current timeout for step changes
  */
 const AppStore = {
-  steps: { observe: sendStep },
+  currentStep: { observe: sendStep },
+  maxStep: 0,
   running: false,
+  n_simulations: 1,
   done: false,
   parameter: {
     ...property([]),
     observe: sendParameter
   },
   specs: [],
-  views: ({ specs }) =>
-    specs.map((spec, index) => vegaEmbed("#view" + index, spec)),
-  model_state: {
-    set: ({ views }, value) => {
-      let mychange = vega
-        .changeset()
-        .insert(value.agents)
-        .remove(vega.truthy)
-      views.map(view =>
-        view.then(result => result.view.change("agents", mychange).run())
+  views: ({ specs }) => {
+    let models = [...document.querySelectorAll(".model")]
+    let views = models.map(model =>
+      [...model.children].map((view_container, index) =>
+        vegaEmbed(view_container, specs[index], {
+          patch: {
+            signals: [
+              {
+                name: "get_datum",
+                on: [
+                  {
+                    events: "click, mousemove[event.buttons]",
+                    update: "datum"
+                  }
+                ]
+              }
+            ]
+          }
+        }).then(result =>
+          result.view.addSignalListener(
+            "get_datum",
+            sendSignal.bind(result.view.container())
+          )
+        )
       )
-      return value
-    }
+    )
+    return views
+  },
+  model_state: {
+    observe: updateViews
   },
   fps: 3,
   timeout: 0
 }
 
+const sendSignal = function(name, value = {}) {
+  let model_id = parseInt(this.parentElement.id.slice(5))
+  send({
+    type: "call_method",
+    data: {
+      step: store.currentStep,
+      model_id: model_id,
+      data: value
+    }
+  })
+  send({
+    type: "get_state",
+    data: {
+      step: store.currentStep
+    }
+  })
+}
+
+function updateViews(store, data) {
+  data.forEach((modelData, index) => {
+    let { agents, ...model } = modelData
+    let agentChange = vega
+      .changeset()
+      .insert(agents)
+      .remove(vega.truthy)
+    store.views[index].map(view =>
+      view.then(view => {
+        let datasets = view.getState({
+          data: vega.truthy
+        }).data
+        if ("agents" in datasets) {
+          view.change("agents", agentChange)
+        }
+        if ("model" in datasets) {
+          view.insert("model", model)
+        }
+        view.runAsync()
+      })
+    )
+  })
+}
 /**
  * Control section to start/step/reset the model
  * @typedef {object} AppControl
@@ -57,13 +117,9 @@ const AppControl = {
   labelStartStop: ({ isRunning }) => (isRunning ? "Stop" : "Start"),
   render: ({ isRunning, labelStartStop }) => html`
     <wl-button onclick=${toggleRunning}>${labelStartStop}</wl-button>
-    ${isRunning
-      ? html`
-          <wl-button disabled onclick=${incrementStep}> Step</wl-button>
-        `
-      : html`
-          <wl-button onclick=${incrementStep}> Step</wl-button>
-        `}
+    <wl-button disabled="${isRunning}" onclick=${incrementStep}>
+      Step</wl-button
+    >
     <wl-button onclick=${resetModel}>Reset</wl-button>
   `
 }
@@ -71,11 +127,18 @@ const AppControl = {
 const VegaElement = {
   store: parent(AppStore),
   specs: ({ store }) => store.specs,
+  sims: ({ store }) => [...Array(store.n_simulations).keys()],
   render: render(
-    ({ specs }) => html`
-      ${specs.map(
-        (_, index) => html`
-          <div id="view${index}"></div>
+    ({ specs, sims }) => html`
+      ${sims.map(
+        n => html`
+          <div class="model" id="model${n}">
+            ${specs.map(
+              (_, index) => html`
+                <div id="view${index}"></div>
+              `
+            )}
+          </div>
         `
       )}
     `,
@@ -196,9 +259,11 @@ function addInput(parameter) {
  */
 const FPSControl = {
   store: parent(AppStore),
-  currentStep: ({ store }) => (store.steps < 0 ? 0 : store.steps),
+  currentStep: ({ store }) => store.currentStep,
+  maxStep: ({ store }) => store.maxStep,
+  isRunning: ({ store }) => store.running,
   fps: ({ store }) => store.fps,
-  render: ({ currentStep, fps }) => html`
+  render: ({ currentStep, fps, maxStep, isRunning }) => html`
     <style>
       wl-text {
         margin-left: 8px;
@@ -218,8 +283,26 @@ const FPSControl = {
       thumbLabel
     >
     </wl-slider>
-    <wl-text slot="left">Current Step: ${currentStep}</wl-text>
+    <wl-text slot="left">Timeline</wl-text>
+    <wl-slider
+      id="timeline"
+      min="0"
+      max=${maxStep}
+      step="1"
+      value=${currentStep}
+      label="Current step: ${currentStep}"
+      oninput=${getState}
+      disabled="${isRunning}"
+    </wl-slider>
+      <wl-text slot="before">0</wl-text>
+      <wl-text slot="after">${maxStep}</wl-text>
+    </wl-slider>
   `
+}
+
+function getState({ store }, { target }) {
+  let step = parseInt(target.value)
+  store.currentStep = step
 }
 
 define("app-store", AppStore)
@@ -239,9 +322,9 @@ define("vega-element", VegaElement)
  * @param {Host} host - an element instance
  */
 function incrementStep({ store }) {
-  if (!store.done) {
-    store.steps += 1
-  }
+  send({ type: "step", data: { step: store.currentStep + 1 } })
+  store.currentStep += 1
+  store.maxStep = store.currentStep
 }
 
 /**
@@ -265,7 +348,9 @@ function toggleRunning({ store }) {
 function resetModel({ store }) {
   clearTimeout(store.timeout)
   store.done = false
-  store.steps = -1
+  send({ type: "reset", data: {} })
+  store.currentStep = 0
+  store.maxStep = 0
 }
 
 /**
@@ -295,21 +380,14 @@ function updateFPS({ store }, { target }) {
 // Set-up element container, reference to app store instance and legacy control object
 const vizElements = []
 const store = document.querySelector("app-store")
-const control = { tick: store.steps }
+const control = { tick: store.currentStep }
 
 /**
  * React to changes in the step counter - by resetting or getting the next step.
  * @param {AppStore} store - The application store
  */
 function sendStep(store) {
-  if (store.steps < 0) {
-    send({ type: "reset" })
-    store.timeout = setTimeout(incrementStep, 1, {
-      store: store
-    })
-  } else {
-    send({ type: "get_step", step: store.steps })
-  }
+  send({ type: "get_state", data: { step: store.currentStep } })
 }
 
 /**
@@ -339,8 +417,11 @@ function sendParameter(store, value, lastValue = []) {
     if (value[param].options.value != lastValue[param].options.value) {
       send({
         type: "submit_params",
-        param: param,
-        value: Number(value[param].options.value) || value[param].options.value
+        data: {
+          param: param,
+          value:
+            Number(value[param].options.value) || value[param].options.value
+        }
       })
     }
   })
@@ -354,9 +435,12 @@ const ws = new window.WebSocket(
 )
 
 /**
- * Get the first step once the websocket is open (via resetting the model)
+ * reset the model once the websocket is open
  */
-ws.onopen = () => (store.steps = -1)
+ws.onopen = () => {
+  send({ type: "reset", data: {} })
+  store.currentStep = 0
+}
 
 /**
  * Parse and handle an incoming message on the WebSocket connection.
@@ -367,7 +451,11 @@ ws.onmessage = function(message) {
   switch (msg.type) {
     case "model_state":
       // Update visualization state
-      store.model_state = JSON.parse(msg.data)
+      store.model_state = msg.data.map(state => JSON.parse(state))
+      /// Workaround to display timeline correctly
+      document
+        .querySelector("fps-control")
+        .shadowRoot.querySelector("#timeline").value = store.currentStep
       if (store.running) {
         store.timeout = setTimeout(incrementStep, 1000 / store.fps, {
           store: store
@@ -386,6 +474,7 @@ ws.onmessage = function(message) {
     case "vega_specs":
       let specifications = msg.data.map(spec => JSON.parse(spec))
       store.specs = specifications
+      store.n_simulations = msg.n_sims
       break
     default:
       // There shouldn't be any other message

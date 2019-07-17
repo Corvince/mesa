@@ -107,9 +107,7 @@ class Model:
 
         if include_agents:
             model_json = model_json[:-1] + ', "agents": [{agents}]}}'.format(
-                agents=", ".join(
-                    [agent.as_json(filter=filter) for agent in self.schedule.agents]
-                )
+                agents=", ".join([agent.as_json() for agent in self.schedule.agents])
             )
 
         return model_json
