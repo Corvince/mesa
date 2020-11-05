@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Mesa Time Module
 ================
@@ -26,8 +25,8 @@ from collections import OrderedDict
 
 # mypy
 from typing import Dict, Iterator, List, Optional, Union
-from .agent import Agent
-from .model import Model
+from mesa.agent import Agent
+from mesa.model import Model
 
 
 # BaseScheduler has a self.time of int, while
@@ -60,6 +59,10 @@ class BaseScheduler:
             have a step() method.
 
         """
+
+        if agent.unique_id in self._agents:
+            raise Exception("Agent with unique id {0} already added to scheduler".format(repr(agent.unique_id)))
+
         self._agents[agent.unique_id] = agent
 
     def remove(self, agent: Agent) -> None:

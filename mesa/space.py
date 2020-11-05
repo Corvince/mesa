@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Mesa Space Module
 =================
@@ -19,7 +18,7 @@ import itertools
 import numpy as np
 
 from typing import Any, Dict, Iterable, Iterator, List, Optional, Set, Tuple, Union
-from .agent import Agent
+from mesa.agent import Agent
 
 Coordinate = Tuple[int, int]
 GridContent = Union[Optional[Agent], Set[Agent]]
@@ -465,12 +464,13 @@ class MultiGrid(Grid):
     @staticmethod
     def default_val() -> Set[Agent]:
         """ Default value for new cell elements. """
-        return set()
+        return []
 
     def _place_agent(self, pos: Coordinate, agent: Agent) -> None:
         """ Place the agent at the correct location. """
         x, y = pos
-        self.grid[x][y].add(agent)
+        if agent not in self.grid[x][y]:
+            self.grid[x][y].append(agent)
         self.empties.discard(pos)
 
     def _remove_agent(self, pos: Coordinate, agent: Agent) -> None:
